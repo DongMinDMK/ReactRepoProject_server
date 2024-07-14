@@ -122,6 +122,38 @@ router.post("/insertBoard", upObj.single("image"), async(req, res, next)=>{
 })
 
 
+router.post("/updateBoard/:num", upObj.single("image"), async(req,res,next)=>{
+    const {title, content, image, savefilename} = req.body;
+
+    try{
+        const connection = await getConnection();
+
+        const sql = "update board set title=?, content=?, image=?, savefilename=? where num=?";
+        const [result, fields] = await connection.query(sql, [title, content, image, savefilename, req.params.num]);
+
+        res.send(result);
+
+    }catch(err){
+        next(err);
+    }
+    
+})
+
+router.delete("/deleteBoard/:num", async(req,res,next)=>{
+    try{
+        const connection = await getConnection();
+
+        const sql = "delete from board where num=?";
+        const [result, fields] = await connection.query(sql, [req.params.num]);
+
+        res.send(result);
+
+    }catch(err){
+        next(err);
+    }
+})
+
+
 
 
 module.exports = router;
