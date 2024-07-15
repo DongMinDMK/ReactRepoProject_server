@@ -50,13 +50,60 @@ const multerObj = multer(
     }
 );
 
-router.get("/getBoardList", async(req, res, next)=>{
+let paging = {
+    page:1,
+    totalCount:0,   
+    beginPage:0,
+    endPage:0,
+    displayRow:10,
+    displayPage:10,
+    prev:false,
+    next:false,
+    startNum:0,
+    endNum:0,
+
+    calPaging:function(){
+        this.endPage =  Math.ceil( this.page/this.displayPage )*this.displayPage;
+        this.beginPage = this.endPage - (this.displayPage - 1);
+        let totalPage = Math.ceil(this.totalCount/this.displayRow);
+        if( totalPage<this.endPage ) {    
+            this.endPage = totalPage;    
+            this.next = false;            
+        }else{    
+            this.next = true;   
+        }
+        this.prev = (this.beginPage==1)? false : true; 
+        this.startNum = (this.page-1)*this.displayRow+1;   
+        this.endNum = this.page*this.displayRow;                  
+        console.log(this.beginPage + " "  + this.endPage + " "  + this.startNum + " "  + this.endNum + " " + this.totalCount);
+
+    }
+
+}
+
+router.get("/getBoardList/:page", async(req, res, next)=>{
+
+    if(req.params.page != undefined){ //뭔가 전달된 내용이 있다면
+        paging.page = req.params.page;
+        req.session.page = req.params.page;
+    }else if(req.session.page != undefined){
+        paging.page = req.session.page;
+    }else{
+        req.session.page = "";
+    }
+
     try{
         const connection = await getConnection();
-        const sql = "select* from board order by num desc";
-        const [rows, fields] = await connection.query(sql);
+        let sql = "select* from board";
+        let [rows, fields] = await connection.query(sql);
+        
+        paging.totalCount = rows.length;
+        paging.calPaging();
 
-        res.send({boardlist:rows });
+        sql = "select* from board order by num desc limit ? offset ?";
+        let [rows2, fields2] = await connection.query(sql, [paging.displayRow, paging.startNum-1]);
+
+        res.send({boardlist:rows2, paging:paging });
 
     }catch(err){
         next(err);
